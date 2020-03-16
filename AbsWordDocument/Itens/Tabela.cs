@@ -11,21 +11,24 @@ using DocumentFormat.OpenXml.Wordprocessing;
 namespace AbsWordDocument.Itens
 {
     public enum TipoDeAlinhamento { NENHUM, ESQUERDO, DIREITO, CENTRO }
+    public enum TipoDeMerge { NENHUM, RESTART, CONTINUE }
+    public enum TipoDeCelula { NORMAL, HEADER, RESUME }
 
-    public class Celula : Paragrafo
+    public class Celula
     {
         private readonly List<OpenXmlElement> _runList;
         public int Width { get; set; }
 
-        public bool Header { get; set; }
-        public TipoDeAlinhamento Alinhamento { get; set; }
+        public TipoDeCelula TipoDeCelula { get; set; }
 
-        public Celula(string style = "TabelaNormal")
-            : base(style)
+        public TipoDeAlinhamento Alinhamento { get; set; }
+        public TipoDeMerge Merge { get; set; }
+
+        public Celula()
         {
             _runList = new List<OpenXmlElement>();
-            Header = false;
             Alinhamento = TipoDeAlinhamento.NENHUM;
+            Merge = TipoDeMerge.NENHUM;
         }
 
         public Celula Append(string text, RunProperties rPr = null)
@@ -90,39 +93,78 @@ namespace AbsWordDocument.Itens
             tableCellProperties.Append(tableCellMargin);
             tableCellProperties.Append(tableCellVerticalAlignment);
 
-            if (Header)
+            switch (TipoDeCelula)
             {
-                tableCellProperties.Append(new Shading() { Val = ShadingPatternValues.Percent10 });
+                case TipoDeCelula.HEADER:
+                    tableCellProperties.Append(new Shading() { Val = ShadingPatternValues.Percent10, Color = "000000", Fill = "auto" });
+                    break;
+                case TipoDeCelula.RESUME:
+                    tableCellProperties.Append(new Shading() { Val = ShadingPatternValues.Percent10, Color = "000000", Fill = "auto" });
+                    break;
+                default: // TipoDeCelula.NORMAL
+                    break;
+            }
+
+            switch (Merge)
+            {
+                case TipoDeMerge.RESTART:
+                    tableCellProperties.Append(new HorizontalMerge() { Val = MergedCellValues.Restart });
+                    break;
+                case TipoDeMerge.CONTINUE:
+                    tableCellProperties.Append(new HorizontalMerge() { Val = MergedCellValues.Continue });
+                    break;
+                default: // TipoDeMerge.NENHUM
+                    break;
             }
 
             tableCell.Append(tableCellProperties);
 
-            Paragraph paragraph = base.CreateParagraph();
+            Paragraph paragraph = new Paragraph();
+            ParagraphProperties paragraphProperties = new ParagraphProperties();
 
             switch (Alinhamento)
             {
                 case TipoDeAlinhamento.ESQUERDO:
+                    paragraphProperties.Append(new ParagraphStyleId() { Val = "LeftTextTable" });
                     break;
                 case TipoDeAlinhamento.CENTRO:
+                    paragraphProperties.Append(new ParagraphStyleId() { Val = "CenteredTextTable" });
                     break;
                 case TipoDeAlinhamento.DIREITO:
+                    paragraphProperties.Append(new ParagraphStyleId() { Val = "RightTextTable" });
                     break;
                 default:  //TipoDeAlinhamento.NENHUM:
+                    paragraphProperties.Append(new ParagraphStyleId() { Val = "NormalTextTable" });
                     break;
             }
 
-            foreach (OpenXmlElement element in _runList)
-                paragraph.AppendChild(element);
+            paragraph.AppendChild(paragraphProperties);
+
+            foreach (OpenXmlElement run in _runList)
+            {
+                switch (TipoDeCelula)
+                {
+                    case TipoDeCelula.HEADER:
+                        if (!run.Elements<RunProperties>().Any())
+                            run.AppendChild(new RunProperties());
+                        run.Elements<RunProperties>().First().AppendChild(new Bold() { Val = OnOffValue.FromBoolean(true) });
+                        break;
+
+                    case TipoDeCelula.RESUME:
+                        if (!run.Elements<RunProperties>().Any())
+                            run.AppendChild(new RunProperties());
+                        run.Elements<RunProperties>().First().AppendChild(new Italic() { Val = OnOffValue.FromBoolean(true) });
+                        run.Elements<RunProperties>().First().AppendChild(new Bold() { Val = OnOffValue.FromBoolean(true) });
+                        break;
+                }
+
+                paragraph.AppendChild(run);
+            }
 
             // Write some text in the cell.
             tableCell.Append(paragraph);
 
             return tableCell;
-        }
-
-        public override void ToWordDocument(WordprocessingDocument wordDocument)
-        {
-            throw new InvalidOperationException("Celula.ToWordDocument() não pode ser invocada!");
         }
     }
 
@@ -130,11 +172,30 @@ namespace AbsWordDocument.Itens
     {
         private readonly Celula[] _celulas;
 
-        public Linha(int columns, string style = "TabelaNormal")
+        private TipoDeCelula _tipoDeCelula;
+        public TipoDeCelula TipoDeCelula {
+            get {
+                return _tipoDeCelula;
+            }
+            set {
+                _tipoDeCelula = value;
+                foreach (Celula cell in _celulas) cell.TipoDeCelula = _tipoDeCelula;
+            }
+        }
+
+        // private bool _header;
+        // public bool Header { get { return _header; } set { _header = value; foreach (Celula cell in _celulas) cell.Header = _header; } }
+        // private bool _resume;
+        // public bool Resume { get { return _resume; } set { _resume = value; foreach (Celula cell in _celulas) cell.Resume = _resume; } }
+
+        public Linha(int columns)
         {
             _celulas = new Celula[columns];
             for (int i = 0; i < _celulas.Length; i++)
-                _celulas[i] = new Celula(style);
+                _celulas[i] = new Celula();
+            TipoDeCelula = TipoDeCelula.NORMAL;
+            // Header = false;
+            // Resume = false;
         }
 
         public Celula this[int i] {
@@ -165,16 +226,22 @@ namespace AbsWordDocument.Itens
 
             // tableRowProperties1.Append(tableRowHeight1);
 
-            tableRow.Append(tablePropertyExceptions);
-            // tableRow1.Append(tableRowProperties1);
-
-            for (int col = 0; col < _celulas.Length; col++)
+            if (TipoDeCelula == TipoDeCelula.RESUME)
             {
-                TableCell tableCell = _celulas[col].ToTableCell();
+                TableRowHeight tableRowHeight = new TableRowHeight() { Val = (UInt32Value)600U };
 
-                // Append the cell to the row.  
-                tableRow.Append(tableCell);
+                TableRowProperties tableRowProperties = new TableRowProperties();
+
+                tableRowProperties.Append(tableRowHeight);
+
+                tableRow.Append(tableRowProperties);
             }
+
+            tableRow.Append(tablePropertyExceptions);
+
+            // Append the cell to the row.  
+            for (int col = 0; col < _celulas.Length; col++)
+                tableRow.Append(_celulas[col].ToTableCell());
 
             return tableRow;
         }
@@ -291,20 +358,9 @@ namespace AbsWordDocument.Itens
             // Append the TableProperties object to the empty table.  
             table.AppendChild(tableProperties);
 
-            for(int row = 0; row < _linhas.Length; row++)
-            {
-                // Create a row and a cell.  
-                TableRow tableRow = new TableRow();
-
-                for (int col = 0; col < this[row].Length; col++)
-                {
-                    TableCell tableCell = this[row][col].ToTableCell();
-
-                    // Append the cell to the row.  
-                    tableRow.Append(tableCell);
-                }
-                table.Append(tableRow);
-            }
+            // Create a row and a cell.  
+            for (int row = 0; row < _linhas.Length; row++)
+                table.Append(_linhas[row].ToTableRow());
 
             wordDocument.MainDocumentPart.Document.Body.AppendChild(table);
         }

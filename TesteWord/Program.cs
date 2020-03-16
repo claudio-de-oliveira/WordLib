@@ -238,12 +238,20 @@ namespace TesteWord
             {
                 for (int j = 0; j < 3; j++)
                 {
-                    tabela[i][j]
-                        .Append($"Célula {i + 1}-{j + 1}");
+                    tabela[i][j].Append($"Célula {i + 1}-{j + 1}");
+
+                    tabela[i][j].Alinhamento = TipoDeAlinhamento.ESQUERDO;
+
                     if (i == 0)
-                        tabela[i][j].Header = true;
+                        tabela[i].TipoDeCelula = TipoDeCelula.HEADER;
+                    else if (i == 2)
+                        tabela[i].TipoDeCelula = TipoDeCelula.RESUME;
                 }
             }
+
+            tabela[2][0].Merge = TipoDeMerge.RESTART;
+            tabela[2][1].Merge = TipoDeMerge.CONTINUE;
+            tabela[2][2].Merge = TipoDeMerge.RESTART;
 
             return tabela;
         }
@@ -256,16 +264,17 @@ namespace TesteWord
 
             WordDoc wordDoc = new WordDoc("Claudio de Oliveira", "CdO");
 
-            string stylesFile = Path.Combine(filepath, "Minuta de Mecânica (21-02-20).docx");
-            // string stylesFile = Path.Combine(filepath, "Apresentação.docx");
-            wordDoc.SetStylesFromDocument(stylesFile);
-            // wordDoc.SetNumberingFromDocument(stylesFile);
+            // string stylesFile = Path.Combine(filepath, "Minuta de Mecânica (21-02-20).docx");
             // wordDoc.SetHeaderFromDocument(stylesFile);
 
             // Paragraph p = WordDocUtilities.CreateParagraphWithStyle("Teste do Título 2", "Ttulo2");
 
-            WordDocUtilities.AddNumberingPartToPackage(wordDoc.WordDocument);
+            // wordDoc.SetStylesFromDocument(stylesFile);
+            WordDocUtilities.AddStyleDefinitionsPartToPackage(wordDoc.WordDocument);
+            wordDoc.WordDocument.MainDocumentPart.StyleDefinitionsPart.Styles = WordDocUtilities.GenerateStyleDefinitionsPartContent();
 
+            // wordDoc.SetNumberingFromDocument(stylesFile);
+            WordDocUtilities.AddNumberingPartToPackage(wordDoc.WordDocument);
             wordDoc.WordDocument.MainDocumentPart.NumberingDefinitionsPart.Numbering = WordDocUtilities.GenerateNumberingDefinitionsPartContent();
 
             Capitulo capitulo;
