@@ -232,14 +232,16 @@ namespace TesteWord
 
         static Tabela TestTabel()
         {
-            Tabela tabela = new Tabela(3, 3, 8000);
+            Tabela tabela = new Tabela(3, 3, 5000);
 
             for (int i = 0; i < 3; i++)
             {
                 for (int j = 0; j < 3; j++)
                 {
-                    tabela.GetCelula(i, j)
+                    tabela[i][j]
                         .Append($"Célula {i + 1}-{j + 1}");
+                    if (i == 0)
+                        tabela[i][j].Header = true;
                 }
             }
 
@@ -249,7 +251,8 @@ namespace TesteWord
         static void Main(string[] args)
         {
             //string filepath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-            string filepath = @"C:\Users\clalu\source\repos\WordLib";
+            // string filepath = @"C:\Users\clalu\source\repos\WordLib";
+            string filepath = @"C:\Users\claudio_oliveira\Source\Repos\WordLib";
 
             WordDoc wordDoc = new WordDoc("Claudio de Oliveira", "CdO");
 
