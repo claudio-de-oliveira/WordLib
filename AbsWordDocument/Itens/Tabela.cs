@@ -89,10 +89,6 @@ namespace AbsWordDocument.Itens
             tableCellMargin.Append(rightMargin);
             TableCellVerticalAlignment tableCellVerticalAlignment = new TableCellVerticalAlignment() { Val = TableVerticalAlignmentValues.Center };
 
-            tableCellProperties.Append(tableCellWidth);
-            tableCellProperties.Append(tableCellMargin);
-            tableCellProperties.Append(tableCellVerticalAlignment);
-
             switch (TipoDeCelula)
             {
                 case TipoDeCelula.HEADER:
@@ -104,6 +100,10 @@ namespace AbsWordDocument.Itens
                 default: // TipoDeCelula.NORMAL
                     break;
             }
+
+            tableCellProperties.Append(tableCellWidth);
+            tableCellProperties.Append(tableCellMargin);
+            tableCellProperties.Append(tableCellVerticalAlignment);
 
             switch (Merge)
             {
@@ -126,15 +126,23 @@ namespace AbsWordDocument.Itens
             {
                 case TipoDeAlinhamento.ESQUERDO:
                     paragraphProperties.Append(new ParagraphStyleId() { Val = "LeftTextTable" });
+                    paragraphProperties.AppendChild(
+                        new RunProperties(new Bold() { Val = OnOffValue.FromBoolean(true) }));
                     break;
                 case TipoDeAlinhamento.CENTRO:
                     paragraphProperties.Append(new ParagraphStyleId() { Val = "CenteredTextTable" });
+                    paragraphProperties.AppendChild(
+                        new RunProperties(new Bold() { Val = OnOffValue.FromBoolean(true) }));
                     break;
                 case TipoDeAlinhamento.DIREITO:
                     paragraphProperties.Append(new ParagraphStyleId() { Val = "RightTextTable" });
+                    paragraphProperties.AppendChild(
+                        new RunProperties(new Bold() { Val = OnOffValue.FromBoolean(true) }));
                     break;
                 default:  //TipoDeAlinhamento.NENHUM:
                     paragraphProperties.Append(new ParagraphStyleId() { Val = "NormalTextTable" });
+                    paragraphProperties.AppendChild(
+                        new RunProperties(new Bold() { Val = OnOffValue.FromBoolean(true) }));
                     break;
             }
 
@@ -250,7 +258,7 @@ namespace AbsWordDocument.Itens
     public class Tabela : Paragrafo
     {
         private readonly Linha[] _linhas;
-        private int _width;
+        private readonly int _width;
 
         public Tabela(int rows, int columns, int width, string style = "Normal")
             : base(style)
@@ -281,8 +289,21 @@ namespace AbsWordDocument.Itens
             // Create an empty table.  
             Table table = new Table();
 
+            TableProperties tableProperties = new TableProperties();
+
+            // TableOverlap
+            TableOverlap tableOverlap = new TableOverlap() { Val = TableOverlapValues.Never };
+            tableProperties.Append(tableOverlap);
+
+            // Make the table width 100% of the page width (50 * 100).
+            TableWidth tableWidth = new TableWidth() { Width = _width.ToString(), Type = TableWidthUnitValues.Pct };
+            tableProperties.Append(tableWidth);
+
+            TableJustification tableJustification = new TableJustification() { Val = TableRowAlignmentValues.Center };
+            tableProperties.Append(tableJustification);
+
             // Create a TableProperties object and specify its border information.  
-            TableProperties tableProperties = new TableProperties(
+            tableProperties.Append(
                 new TableBorders(
                     new TopBorder() { Val = new EnumValue<BorderValues>(BorderValues.Double), Size = 1 },
                     new BottomBorder() { Val = new EnumValue<BorderValues>(BorderValues.Double), Size = 1 },
@@ -325,35 +346,24 @@ namespace AbsWordDocument.Itens
             // tablePositionProperties.TablePositionY = 1;
             // tableProperties.Append(tablePositionProperties);
 
-            // TableOverlap
-            TableOverlap tableOverlap = new TableOverlap() { Val = TableOverlapValues.Never };
-            tableProperties.Append(tableOverlap);
-
-            tableProperties.Append(new Justification() { Val = JustificationValues.Center });
 
             // BiDiVisual
 
-            // Make the table width 100% of the page width (50 * 100).
-            TableWidth tableWidth = new TableWidth() { Width = _width.ToString(), Type = TableWidthUnitValues.Pct };
-            tableProperties.Append(tableWidth);
-
-            TableJustification tableJustification = new TableJustification() { Val = TableRowAlignmentValues.Center };
-            tableProperties.Append(tableJustification);
             // TableCellSpacing
             // TableIndentation
 
-            TableCaption tableCaption = new TableCaption() { Val = "Caption Table" };
-            tableProperties.Append(tableCaption);
+            // TableCaption tableCaption = new TableCaption() { Val = "Caption Table" };
+            // tableProperties.Append(tableCaption);
 
             // TableDescription
             // TablePropertiesChange
 
-            TableGrid tableGrid = new TableGrid();
-
-            for (int w = 0; w < this[0].Length; w++)
-                tableGrid.Append(new GridColumn());
-
-            table.Append(tableGrid);
+            // TableGrid tableGrid = new TableGrid();
+            // 
+            // for (int w = 0; w < this[0].Length; w++)
+            //     tableGrid.Append(new GridColumn());
+            // 
+            // table.Append(tableGrid);
 
             // Append the TableProperties object to the empty table.  
             table.AppendChild(tableProperties);
@@ -362,10 +372,218 @@ namespace AbsWordDocument.Itens
             for (int row = 0; row < _linhas.Length; row++)
                 table.Append(_linhas[row].ToTableRow());
 
+            string str = table.OuterXml;
+
             wordDocument.MainDocumentPart.Document.Body.AppendChild(table);
         }
     }
 }
 
+/*
 
+    </w:tblBorders><w:tblCellMar><w:left w:w="10" w:type="dxa" /><w:right w:w="10" w:type="dxa" /></w:tblCellMar><w:tblLook w:val="04A0" w:firstRow="true" w:lastRow="false" w:firstColumn="true" w:lastColumn="false" w:noHBand="false" w:noVBand="true" /></w:tblPr><w:tr><w:tblPrEx><w:tblCellMar><w:top w:w="0" w:type="dxa" /><w:bottom w:w="0" w:type="dxa" /></w:tblCellMar></w:tblPrEx><w:tc><w:tcPr><w:shd w:val="pct10" w:color="000000" w:fill="auto" /><w:tcW w:w="0" w:type="dxa" /><w:tcMar><w:left w:w="100" w:type="dxa" /><w:right w:w="100" w:type="dxa" /></w:tcMar><w:vAlign w:val="center" /></w:tcPr><w:p><w:pPr><w:pStyle w:val="LeftTextTable" /><w:rPr><w:b w:val="true" /></w:rPr></w:pPr><w:r><w:t xml:space="preserve">Célula 1-1</w:t><w:rPr><w:b w:val="true" /></w:rPr></w:r></w:p></w:tc><w:tc><w:tcPr><w:shd w:val="pct10" w:color="000000" w:fill="auto" /><w:tcW w:w="0" w:type="dxa" /><w:tcMar><w:left w:w="100" w:type="dxa" /><w:right w:w="100" w:type="dxa" /></w:tcMar><w:vAlign w:val="center" /></w:tcPr><w:p><w:pPr><w:pStyle w:val="LeftTextTable" /><w:rPr><w:b w:val="true" /></w:rPr></w:pPr><w:r><w:t xml:space="preserve">Célula 1-2</w:t><w:rPr><w:b w:val="true" /></w:rPr></w:r></w:p></w:tc><w:tc><w:tcPr><w:shd w:val="pct10" w:color="000000" w:fill="auto" /><w:tcW w:w="0" w:type="dxa" /><w:tcMar><w:left w:w="100" w:type="dxa" /><w:right w:w="100" w:type="dxa" /></w:tcMar><w:vAlign w:val="center" /></w:tcPr><w:p><w:pPr><w:pStyle w:val="LeftTextTable" /><w:rPr><w:b w:val="true" /></w:rPr></w:pPr><w:r><w:t xml:space="preserve">Célula 1-3</w:t><w:rPr><w:b w:val="true" /></w:rPr></w:r></w:p></w:tc></w:tr><w:tr><w:tblPrEx><w:tblCellMar><w:top w:w="0" w:type="dxa" /><w:bottom w:w="0" w:type="dxa" /></w:tblCellMar></w:tblPrEx><w:tc><w:tcPr><w:tcW w:w="0" w:type="dxa" /><w:tcMar><w:left w:w="100" w:type="dxa" /><w:right w:w="100" w:type="dxa" /></w:tcMar><w:vAlign w:val="center" /></w:tcPr><w:p><w:pPr><w:pStyle w:val="LeftTextTable" /><w:rPr><w:b w:val="true" /></w:rPr></w:pPr><w:r><w:t xml:space="preserve">Célula 2-1</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:tcW w:w="0" w:type="dxa" /><w:tcMar><w:left w:w="100" w:type="dxa" /><w:right w:w="100" w:type="dxa" /></w:tcMar><w:vAlign w:val="center" /></w:tcPr><w:p><w:pPr><w:pStyle w:val="LeftTextTable" /><w:rPr><w:b w:val="true" /></w:rPr></w:pPr><w:r><w:t xml:space="preserve">Célula 2-2</w:t></w:r></w:p></w:tc><w:tc><w:tcPr><w:tcW w:w="0" w:type="dxa" /><w:tcMar><w:left w:w="100" w:type="dxa" /><w:right w:w="100" w:type="dxa" /></w:tcMar><w:vAlign w:val="center" /></w:tcPr><w:p><w:pPr><w:pStyle w:val="LeftTextTable" /><w:rPr><w:b w:val="true" /></w:rPr></w:pPr><w:r><w:t xml:space="preserve">Célula 2-3</w:t></w:r></w:p></w:tc></w:tr><w:tr><w:trPr><w:trHeight w:val="600" /></w:trPr><w:tblPrEx><w:tblCellMar><w:top w:w="0" w:type="dxa" /><w:bottom w:w="0" w:type="dxa" /></w:tblCellMar></w:tblPrEx><w:tc><w:tcPr><w:shd w:val="pct10" w:color="000000" w:fill="auto" /><w:tcW w:w="0" w:type="dxa" /><w:tcMar><w:left w:w="100" w:type="dxa" /><w:right w:w="100" w:type="dxa" /></w:tcMar><w:vAlign w:val="center" /><w:hMerge w:val="restart" /></w:tcPr><w:p><w:pPr><w:pStyle w:val="LeftTextTable" /><w:rPr><w:b w:val="true" /></w:rPr></w:pPr><w:r><w:t xml:space="preserve">Célula 3-1</w:t><w:rPr><w:i w:val="true" /><w:b w:val="true" /></w:rPr></w:r></w:p></w:tc><w:tc><w:tcPr><w:shd w:val="pct10" w:color="000000" w:fill="auto" /><w:tcW w:w="0" w:type="dxa" /><w:tcMar><w:left w:w="100" w:type="dxa" /><w:right w:w="100" w:type="dxa" /></w:tcMar><w:vAlign w:val="center" /><w:hMerge w:val="continue" /></w:tcPr><w:p><w:pPr><w:pStyle w:val="LeftTextTable" /><w:rPr><w:b w:val="true" /></w:rPr></w:pPr><w:r><w:t xml:space="preserve">Célula 3-2</w:t><w:rPr><w:i w:val="true" /><w:b w:val="true" /></w:rPr></w:r></w:p></w:tc><w:tc><w:tcPr><w:shd w:val="pct10" w:color="000000" w:fill="auto" /><w:tcW w:w="0" w:type="dxa" /><w:tcMar><w:left w:w="100" w:type="dxa" /><w:right w:w="100" w:type="dxa" /></w:tcMar><w:vAlign w:val="center" /><w:hMerge w:val="restart" /></w:tcPr><w:p><w:pPr><w:pStyle w:val="LeftTextTable" /><w:rPr><w:b w:val="true" /></w:rPr></w:pPr><w:r><w:t xml:space="preserve">Célula 3-3</w:t><w:rPr><w:i w:val="true" /><w:b w:val="true" /></w:rPr></w:r></w:p></w:tc></w:tr></w:tbl>
+*/
 
+/*
+            <w:tr w:rsidR="00480382">
+                <w:trPr>
+                    <w:jc w:val="center"/>
+                </w:trPr>
+                <w:tc>
+                    <w:tcPr>
+                        <w:tcW w:w="0" w:type="dxa"/>
+                        <w:shd w:val="pct10" w:color="000000" w:fill="auto"/>
+                        <w:tcMar>
+                            <w:left w:w="100" w:type="dxa"/>
+                            <w:right w:w="100" w:type="dxa"/>
+                        </w:tcMar>
+                        <w:vAlign w:val="center"/>
+                    </w:tcPr>
+                    <w:p w:rsidR="00480382" w:rsidRPr="00F0114C" w:rsidRDefault="00F0114C">
+                        <w:pPr>
+                            <w:pStyle w:val="LeftTextTable"/>
+                            <w:rPr>
+                                <w:b/>
+                            </w:rPr>
+                        </w:pPr>
+                        <w:r w:rsidRPr="00F0114C">
+                            <w:rPr>
+                                <w:b/>
+                            </w:rPr>
+                            <w:t>Célula 1-1</w:t>
+                        </w:r>
+                    </w:p>
+                </w:tc>
+                <w:tc>
+                    <w:tcPr>
+                        <w:tcW w:w="0" w:type="dxa"/>
+                        <w:shd w:val="pct10" w:color="000000" w:fill="auto"/>
+                        <w:tcMar>
+                            <w:left w:w="100" w:type="dxa"/>
+                            <w:right w:w="100" w:type="dxa"/>
+                        </w:tcMar>
+                        <w:vAlign w:val="center"/>
+                    </w:tcPr>
+                    <w:p w:rsidR="00480382" w:rsidRPr="00F0114C" w:rsidRDefault="00F0114C">
+                        <w:pPr>
+                            <w:pStyle w:val="LeftTextTable"/>
+                            <w:rPr>
+                                <w:b/>
+                            </w:rPr>
+                        </w:pPr>
+                        <w:r w:rsidRPr="00F0114C">
+                            <w:rPr>
+                                <w:b/>
+                            </w:rPr>
+                            <w:t>Célula 1-2</w:t>
+                        </w:r>
+                    </w:p>
+                </w:tc>
+                <w:tc>
+                    <w:tcPr>
+                        <w:tcW w:w="0" w:type="dxa"/>
+                        <w:shd w:val="pct10" w:color="000000" w:fill="auto"/>
+                        <w:tcMar>
+                            <w:left w:w="100" w:type="dxa"/>
+                            <w:right w:w="100" w:type="dxa"/>
+                        </w:tcMar>
+                        <w:vAlign w:val="center"/>
+                    </w:tcPr>
+                    <w:p w:rsidR="00480382" w:rsidRPr="00F0114C" w:rsidRDefault="00F0114C">
+                        <w:pPr>
+                            <w:pStyle w:val="LeftTextTable"/>
+                            <w:rPr>
+                                <w:b/>
+                            </w:rPr>
+                        </w:pPr>
+                        <w:r w:rsidRPr="00F0114C">
+                            <w:rPr>
+                                <w:b/>
+                            </w:rPr>
+                            <w:t>Célula 1-3</w:t>
+                        </w:r>
+                    </w:p>
+                </w:tc>
+            </w:tr>
+            <w:tr w:rsidR="00480382">
+                <w:trPr>
+                    <w:jc w:val="center"/>
+                </w:trPr>
+                <w:tc>
+                    <w:tcPr>
+                        <w:tcW w:w="0" w:type="dxa"/>
+                        <w:tcMar>
+                            <w:left w:w="100" w:type="dxa"/>
+                            <w:right w:w="100" w:type="dxa"/>
+                        </w:tcMar>
+                        <w:vAlign w:val="center"/>
+                    </w:tcPr>
+                    <w:p w:rsidR="00480382" w:rsidRDefault="00F0114C">
+                        <w:pPr>
+                            <w:pStyle w:val="LeftTextTable"/>
+                        </w:pPr>
+                        <w:r>
+                            <w:t>Célula 2-1</w:t>
+                        </w:r>
+                    </w:p>
+                </w:tc>
+                <w:tc>
+                    <w:tcPr>
+                        <w:tcW w:w="0" w:type="dxa"/>
+                        <w:tcMar>
+                            <w:left w:w="100" w:type="dxa"/>
+                            <w:right w:w="100" w:type="dxa"/>
+                        </w:tcMar>
+                        <w:vAlign w:val="center"/>
+                    </w:tcPr>
+                    <w:p w:rsidR="00480382" w:rsidRDefault="00F0114C">
+                        <w:pPr>
+                            <w:pStyle w:val="LeftTextTable"/>
+                        </w:pPr>
+                        <w:r>
+                            <w:t>Célula 2-2</w:t>
+                        </w:r>
+                    </w:p>
+                </w:tc>
+                <w:tc>
+                    <w:tcPr>
+                        <w:tcW w:w="0" w:type="dxa"/>
+                        <w:tcMar>
+                            <w:left w:w="100" w:type="dxa"/>
+                            <w:right w:w="100" w:type="dxa"/>
+                        </w:tcMar>
+                        <w:vAlign w:val="center"/>
+                    </w:tcPr>
+                    <w:p w:rsidR="00480382" w:rsidRDefault="00F0114C">
+                        <w:pPr>
+                            <w:pStyle w:val="LeftTextTable"/>
+                        </w:pPr>
+                        <w:r>
+                            <w:t>Célula 2-3</w:t>
+                        </w:r>
+                    </w:p>
+                </w:tc>
+            </w:tr>
+            <w:tr w:rsidR="00F0114C" w:rsidTr="00F0114C">
+                <w:trPr>
+                    <w:trHeight w:val="600"/>
+                    <w:jc w:val="center"/>
+                </w:trPr>
+                <w:tc>
+                    <w:tcPr>
+                        <w:tcW w:w="0" w:type="dxa"/>
+                        <w:gridSpan w:val="2"/>
+                        <w:shd w:val="pct10" w:color="000000" w:fill="auto"/>
+                        <w:tcMar>
+                            <w:left w:w="100" w:type="dxa"/>
+                            <w:right w:w="100" w:type="dxa"/>
+                        </w:tcMar>
+                        <w:vAlign w:val="center"/>
+                    </w:tcPr>
+                    <w:p w:rsidR="00480382" w:rsidRPr="00F0114C" w:rsidRDefault="00F0114C">
+                        <w:pPr>
+                            <w:pStyle w:val="LeftTextTable"/>
+                            <w:rPr>
+                                <w:b/>
+                                <w:i/>
+                            </w:rPr>
+                        </w:pPr>
+                        <w:r w:rsidRPr="00F0114C">
+                            <w:rPr>
+                                <w:b/>
+                                <w:i/>
+                            </w:rPr>
+                            <w:t>Célula 3-1</w:t>
+                        </w:r>
+                    </w:p>
+                </w:tc>
+                <w:tc>
+                    <w:tcPr>
+                        <w:tcW w:w="0" w:type="dxa"/>
+                        <w:shd w:val="pct10" w:color="000000" w:fill="auto"/>
+                        <w:tcMar>
+                            <w:left w:w="100" w:type="dxa"/>
+                            <w:right w:w="100" w:type="dxa"/>
+                        </w:tcMar>
+                        <w:vAlign w:val="center"/>
+                    </w:tcPr>
+                    <w:p w:rsidR="00480382" w:rsidRPr="00F0114C" w:rsidRDefault="00F0114C">
+                        <w:pPr>
+                            <w:pStyle w:val="LeftTextTable"/>
+                            <w:rPr>
+                                <w:b/>
+                                <w:i/>
+                            </w:rPr>
+                        </w:pPr>
+                        <w:r w:rsidRPr="00F0114C">
+                            <w:rPr>
+                                <w:b/>
+                                <w:i/>
+                            </w:rPr>
+                            <w:t>Célula 3-3</w:t>
+                        </w:r>
+                    </w:p>
+                </w:tc>
+            </w:tr>
+        </w:tbl> 
+     */
